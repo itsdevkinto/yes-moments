@@ -115,8 +115,9 @@ const ValentineCreator = ({ onDecorationChange }: ValentineCreatorProps) => {
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/v/${pageId}`;
-      setCreatedLink(link);
+      const base = import.meta.env.VITE_BASE_PATH?.replace(/\/$/, "") || "";
+      const link = `${window.location.origin}${base}/v/${pageId}`;
+            setCreatedLink(link);
       toast({
         title: "Valentine created! 💕",
         description: "Share the link with your special someone!",
