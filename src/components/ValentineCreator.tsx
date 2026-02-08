@@ -1,0 +1,483 @@
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Heart, Sparkles, Send, Plus, X, MessageCircle, Palette, Mail } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { nanoid } from "nanoid";
+import { useToast } from "@/hooks/use-toast";
+import ThemePicker from "./ThemePicker";
+import DecorationPicker from "./DecorationPicker";
+import { DecorationType } from "@/lib/themes";
+
+interface ValentineData {
+  question: string;
+  beggingMessages: string[];
+  finalMessage: string;
+  socialLabel: string;
+  socialLink: string;
+  senderName: string;
+  receiverName: string;
+  creatorEmail: string;
+  theme: string;
+  decorationType: DecorationType;
+  customDecorationUrl: string;
+}
+
+interface ValentineCreatorProps {
+  onDecorationChange?: (decorationType: DecorationType, customDecorationUrl?: string | null) => void;
+}
+
+const ValentineCreator = ({ onDecorationChange }: ValentineCreatorProps) => {
+  const { toast } = useToast();
+  const [isCreating, setIsCreating] = useState(false);
+  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ValentineData>({
+    question: "Will you be my Valentine?",
+    beggingMessages: [
+      "Are you sure?",
+      "Really sure??",
+      "Please? 🥺",
+      "Pretty please? 💕",
+      "Just say yes!",
+      "I'll be so sad...",
+      "You're breaking my heart! 💔",
+      "Don't do this to me!",
+    ],
+    finalMessage: "I knew you would say yes! You just made me the happiest person ever!",
+    socialLabel: "Message me on Instagram",
+    socialLink: "",
+    senderName: "",
+    receiverName: "",
+    creatorEmail: "",
+    theme: "romantic",
+    decorationType: "hearts",
+    customDecorationUrl: "",
+  });
+
+  useEffect(() => {
+    onDecorationChange?.(formData.decorationType, formData.customDecorationUrl || null);
+  }, [formData.decorationType, formData.customDecorationUrl, onDecorationChange]);
+
+  const addBeggingMessage = () => {
+    setFormData((prev) => ({
+      ...prev,
+      beggingMessages: [...prev.beggingMessages, ""],
+    }));
+  };
+
+  const removeBeggingMessage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      beggingMessages: prev.beggingMessages.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateBeggingMessage = (index: number, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      beggingMessages: prev.beggingMessages.map((msg, i) =>
+        i === index ? value : msg
+      ),
+    }));
+  };
+
+  const handleCreate = async () => {
+    if (!formData.senderName.trim()) {
+      toast({
+        title: "Missing name",
+        description: "Please enter your name so they know who it's from!",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreating(true);
+    const pageId = nanoid(10);
+
+    try {
+      const { error } = await supabase.from("valentine_pages").insert({
+        id: pageId,
+        question: formData.question,
+        begging_messages: formData.beggingMessages.filter((m) => m.trim()),
+        final_message: formData.finalMessage,
+        social_label: formData.socialLabel || null,
+        social_link: formData.socialLink || null,
+        sender_name: formData.senderName,
+        receiver_name: formData.receiverName || null,
+        creator_email: formData.creatorEmail || null,
+        theme: formData.theme,
+        decoration_type: formData.decorationType,
+        custom_decoration_url: formData.customDecorationUrl || null,
+      });
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/v/${pageId}`;
+      setCreatedLink(link);
+      toast({
+        title: "Valentine created! 💕",
+        description: "Share the link with your special someone!",
+      });
+    } catch (error) {
+      console.error("Error creating valentine:", error);
+      toast({
+        title: "Oops!",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+const copyLink = async () => {
+  if (createdLink) {
+    try {
+      // Check if the API exists and context is secure
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(createdLink);
+        toast({
+          title: "Copied! 📋",
+          description: "Link copied to clipboard!",
+        });
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = createdLink;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+        toast({
+          title: "Copied! 📋",
+          description: "Link copied to clipboard (fallback)!",
+        });
+      }
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+      toast({
+        title: "Error",
+        description: "Failed to copy link.",
+        variant: "destructive",
+      });
+    }
+  }
+};
+
+
+  const resetForm = () => {
+    setCreatedLink(null);
+    setFormData({
+      question: "Will you be my Valentine?",
+      beggingMessages: [
+        "Are you sure?",
+        "Really sure??",
+        "Please? 🥺",
+        "Pretty please? 💕",
+        "Just say yes!",
+        "I'll be so sad...",
+        "You're breaking my heart! 💔",
+        "Don't do this to me!",
+      ],
+      finalMessage: "I knew you would say yes! You just made me the happiest person ever!",
+      socialLabel: "Message me on Instagram",
+      socialLink: "",
+      senderName: "",
+      receiverName: "",
+      creatorEmail: "",
+      theme: "romantic",
+      decorationType: "hearts",
+      customDecorationUrl: "",
+    });
+  };
+
+  if (createdLink) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="valentine-card max-w-lg mx-auto text-center"
+      >
+        <div className="animate-heart-beat inline-block text-6xl mb-6">💕</div>
+        <h2 className="text-3xl font-serif font-bold text-foreground mb-4">
+          Your Valentine is Ready!
+        </h2>
+        <p className="text-muted-foreground mb-6">
+          Share this magical link with your special someone
+        </p>
+        <div className="bg-secondary/50 rounded-xl p-4 mb-6 break-all">
+          <code className="text-sm text-foreground">{createdLink}</code>
+        </div>
+        <div className="flex gap-4 justify-center flex-wrap">
+          <Button onClick={copyLink} className="btn-romantic">
+            <Sparkles className="w-5 h-5 mr-2" />
+            Copy Link
+          </Button>
+          <Button
+            variant="outline"
+            onClick={resetForm}
+            className="border-primary/30 hover:bg-secondary"
+          >
+            Create Another
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="valentine-card max-w-2xl mx-auto"
+    >
+      <div className="text-center mb-8">
+        <Heart className="w-12 h-12 text-primary mx-auto mb-4 animate-heart-beat" />
+        <h2 className="text-3xl font-serif font-bold text-foreground mb-2">
+          Create Your Valentine
+        </h2>
+        <p className="text-muted-foreground">
+          Make it special, make it unforgettable
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        {/* Sender Name */}
+        <div>
+          <Label htmlFor="senderName" className="text-foreground font-medium">
+            Your Name <span className="text-primary">*</span>
+          </Label>
+          <Input
+            id="senderName"
+            value={formData.senderName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, senderName: e.target.value }))
+            }
+            placeholder="Enter your name"
+            className="mt-2 bg-background border-border"
+          />
+        </div>
+
+        {/* Receiver Name */}
+        <div>
+          <Label htmlFor="receiverName" className="text-foreground font-medium">
+            Their Name (Optional)
+          </Label>
+          <Input
+            id="receiverName"
+            value={formData.receiverName}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, receiverName: e.target.value }))
+            }
+            placeholder="Enter their name"
+            className="mt-2 bg-background border-border"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Used in the card and email notification
+          </p>
+        </div>
+
+        {/* Creator Email for notifications */}
+        <div>
+          <Label htmlFor="creatorEmail" className="text-foreground font-medium flex items-center gap-2">
+            <Mail className="w-4 h-4" />
+            Your Email (for notifications)
+          </Label>
+          <Input
+            id="creatorEmail"
+            type="email"
+            value={formData.creatorEmail}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, creatorEmail: e.target.value }))
+            }
+            placeholder="you@example.com"
+            className="mt-2 bg-background border-border"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            We'll notify you when they say YES! 🎉
+          </p>
+        </div>
+
+        {/* Theme Picker */}
+        <div>
+          <Label className="text-foreground font-medium flex items-center gap-2 mb-3">
+            <Palette className="w-4 h-4" />
+            Color Theme
+          </Label>
+          <ThemePicker
+            selectedTheme={formData.theme}
+            onSelectTheme={(theme) =>
+              setFormData((prev) => ({ ...prev, theme }))
+            }
+          />
+        </div>
+
+        {/* Decoration Picker */}
+        <div>
+          <Label className="text-foreground font-medium mb-3 block">
+            Floating Decorations ✨
+          </Label>
+          <DecorationPicker
+            selectedDecoration={formData.decorationType}
+            onSelectDecoration={(type) =>
+              setFormData((prev) => ({ ...prev, decorationType: type }))
+            }
+            customImageUrl={formData.customDecorationUrl}
+            onCustomImageUrlChange={(url) =>
+              setFormData((prev) => ({ ...prev, customDecorationUrl: url }))
+            }
+          />
+        </div>
+
+        {/* Question */}
+        <div>
+          <Label htmlFor="question" className="text-foreground font-medium">
+            The Big Question 💕
+          </Label>
+          <Input
+            id="question"
+            value={formData.question}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, question: e.target.value }))
+            }
+            placeholder="Will you be my Valentine?"
+            className="mt-2 bg-background border-border"
+          />
+        </div>
+
+        {/* Begging Messages */}
+        <div>
+          <Label className="text-foreground font-medium">
+            Begging Messages 🥺
+            <span className="text-muted-foreground text-sm ml-2">
+              (shown when they try to click No)
+            </span>
+          </Label>
+          <div className="space-y-3 mt-2">
+            {formData.beggingMessages.map((msg, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={msg}
+                  onChange={(e) => updateBeggingMessage(index, e.target.value)}
+                  placeholder={`Message ${index + 1}`}
+                  className="bg-background border-border"
+                />
+                {formData.beggingMessages.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeBeggingMessage(index)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addBeggingMessage}
+              className="border-dashed border-primary/40 text-primary hover:bg-secondary"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Message
+            </Button>
+          </div>
+        </div>
+
+        {/* Final Message */}
+        <div>
+          <Label htmlFor="finalMessage" className="text-foreground font-medium">
+            Final Message 💖
+            <span className="text-muted-foreground text-sm ml-2">
+              (shown after they say YES!)
+            </span>
+          </Label>
+          <Textarea
+            id="finalMessage"
+            value={formData.finalMessage}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, finalMessage: e.target.value }))
+            }
+            placeholder="I knew you would say yes! You just made me the happiest person ever!"
+            className="mt-2 bg-background border-border min-h-[100px]"
+          />
+        </div>
+
+        {/* Social Link */}
+        <div className="bg-secondary/30 rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-2 text-foreground font-medium">
+            <MessageCircle className="w-5 h-5 text-primary" />
+            Contact Info (Optional)
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <Label
+                htmlFor="socialLabel"
+                className="text-muted-foreground text-sm"
+              >
+                Button Label
+              </Label>
+              <Input
+                id="socialLabel"
+                value={formData.socialLabel}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    socialLabel: e.target.value,
+                  }))
+                }
+                placeholder="Message me on Instagram"
+                className="mt-1 bg-background border-border"
+              />
+            </div>
+            <div>
+              <Label
+                htmlFor="socialLink"
+                className="text-muted-foreground text-sm"
+              >
+                Link URL
+              </Label>
+              <Input
+                id="socialLink"
+                value={formData.socialLink}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, socialLink: e.target.value }))
+                }
+                placeholder="https://instagram.com/yourusername"
+                className="mt-1 bg-background border-border"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Submit */}
+        <div className="text-center pt-4">
+          <Button
+            onClick={handleCreate}
+            disabled={isCreating}
+            className="btn-romantic text-xl px-10 py-6"
+          >
+            {isCreating ? (
+              <>
+                <Heart className="w-6 h-6 mr-2 animate-heart-beat" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <Send className="w-6 h-6 mr-2" />
+                Create Valentine
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+export default ValentineCreator;

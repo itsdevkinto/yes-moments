@@ -1,0 +1,603 @@
+import { useState, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, Download, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import html2canvas from "html2canvas";
+import confetti from "canvas-confetti";
+import {
+  ThemeConfig,
+  getThemeById,
+  getDecorationById,
+  DecorationType,
+} from "@/lib/themes";
+
+const NO_DODGE_EMOJIS = ["😭", "🥺", "💔", "😢", "❤️", "💕", "😿", "🙏", "✨", "💔"];
+const BEGGING_COOLDOWN_MS = 600;
+
+/**
+ * Celebration music after YES chime.
+ * Use the video ID from a YouTube URL: youtube.com/watch?v=VIDEO_ID
+ * If you see "Video unavailable": the uploader must allow embedding (YouTube Studio → Video → Show more → Allow embedding).
+ */
+const CELEBRATION_YOUTUBE_VIDEO_ID = "GOXGbr10i8s";
+
+let sharedAudioContext: AudioContext | null = null;
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!sharedAudioContext) {
+    try {
+      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      sharedAudioContext = new Ctx();
+    } catch {
+      return null;
+    }
+  }
+  return sharedAudioContext;
+}
+
+function unlockAudio(): void {
+  const ctx = getAudioContext();
+  if (ctx?.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
+function playChime(): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+    osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+    osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch {
+    // Audio not supported or blocked
+  }
+}
+
+function playPop(): void {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(200 + Math.random() * 300, ctx.currentTime);
+    osc.type = "sine";
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.12);
+  } catch {
+    // Audio not supported or blocked
+  }
+}
+
+interface ValentineCardProps {
+  pageId: string;
+  question: string;
+  beggingMessages: string[];
+  finalMessage: string;
+  socialLabel: string | null;
+  socialLink: string | null;
+  senderName: string | null;
+  receiverName: string | null;
+  alreadyAccepted?: boolean;
+  existingScreenshotUrl?: string | null;
+  theme?: string;
+  decorationType?: DecorationType;
+}
+
+const ValentineCard = ({
+  pageId,
+  question,
+  beggingMessages,
+  finalMessage,
+  socialLabel,
+  socialLink,
+  senderName,
+  receiverName,
+  alreadyAccepted = false,
+  existingScreenshotUrl = null,
+  theme = "romantic",
+  decorationType = "hearts",
+}: ValentineCardProps) => {
+  const [noPosition, setNoPosition] = useState({ x: 0, y: 0 });
+  const [noAttempts, setNoAttempts] = useState(0);
+  const [yesClicked, setYesClicked] = useState(alreadyAccepted);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(
+    existingScreenshotUrl,
+  );
+  const [floatingEmojis, setFloatingEmojis] = useState<
+    { id: number; emoji: string; x: number; y: number }[]
+  >([]);
+  const [showCelebrationMusic, setShowCelebrationMusic] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const lastDodgeTimeRef = useRef(0);
+  const emojiIdRef = useRef(0);
+
+  const themeConfig = getThemeById(theme);
+  const decoration = getDecorationById(decorationType);
+  const mainEmoji = decoration.symbols[0] || "💕";
+
+  const pleaseSayYesGif = "/please-say-yes.gif";
+  const youSaidYesVideo = "/you-said-yes.mp4";
+
+  const currentBeggingMessage =
+    noAttempts > 0
+      ? beggingMessages[Math.min(noAttempts - 1, beggingMessages.length - 1)]
+      : null;
+
+  const yesButtonSize = Math.min(1 + noAttempts * 0.15, 2.5);
+
+  const dodgeNo = useCallback(() => {
+    const now = Date.now();
+    if (now - lastDodgeTimeRef.current < BEGGING_COOLDOWN_MS) return;
+    lastDodgeTimeRef.current = now;
+
+    const maxX = 150;
+    const maxY = 100;
+    const newX = (Math.random() - 0.5) * maxX * 2;
+    const newY = (Math.random() - 0.5) * maxY * 2;
+    setNoPosition({ x: newX, y: newY });
+    setNoAttempts((prev) => prev + 1);
+
+    playPop();
+    const count = 2 + Math.floor(Math.random() * 2);
+    const newEmojis: { id: number; emoji: string; x: number; y: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      emojiIdRef.current += 1;
+      newEmojis.push({
+        id: emojiIdRef.current,
+        emoji: NO_DODGE_EMOJIS[Math.floor(Math.random() * NO_DODGE_EMOJIS.length)],
+        x: 15 + Math.random() * 70,
+        y: 10 + Math.random() * 50,
+      });
+    }
+    setFloatingEmojis((prev) => [...prev, ...newEmojis]);
+    newEmojis.forEach((e) => {
+      setTimeout(() => {
+        setFloatingEmojis((list) => list.filter((x) => x.id !== e.id));
+      }, 1600);
+    });
+  }, []);
+
+  const triggerConfetti = useCallback(() => {
+    const duration = 4000;
+    const animationEnd = Date.now() + duration;
+    const colors = [
+      `hsl(${themeConfig.colors.primary})`,
+      `hsl(${themeConfig.colors.secondary})`,
+      `hsl(${themeConfig.colors.accent})`,
+    ];
+
+    const randomInRange = (min: number, max: number) =>
+      Math.random() * (max - min) + min;
+
+    const interval = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+      const particleCount = 50 * (timeLeft / duration);
+
+      confetti({
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors,
+        shapes: ["circle"],
+        startVelocity: 30,
+        spread: 360,
+        ticks: 60,
+        zIndex: 1000,
+      });
+      confetti({
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors,
+        shapes: ["circle"],
+        startVelocity: 30,
+        spread: 360,
+        ticks: 60,
+        zIndex: 1000,
+      });
+    }, 250);
+
+    confetti({
+      particleCount: 150,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors,
+    });
+  }, [themeConfig]);
+
+  const screenshotRef = useRef<HTMLDivElement>(null);
+  const captureScreenshot = useCallback(async (): Promise<string | null> => {
+    if (!screenshotRef.current) return null;
+
+    try {
+      // Wait for React to paint the celebration view, then for animations to settle
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resolve();
+          });
+        });
+      });
+      await new Promise((resolve) => setTimeout(resolve, 2600));
+
+      const canvas = await html2canvas(screenshotRef.current, {
+        backgroundColor: `hsl(${themeConfig.colors.background})`,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        foreignObjectRendering: false,
+        onclone: (clonedDoc, element) => {
+          // Ensure styles are properly applied in the clone
+          element.style.transform = "none";
+          element.style.opacity = "1";
+        },
+      });
+
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      console.error("Screenshot failed:", error);
+      return null;
+    }
+  }, [themeConfig]);
+
+  const uploadScreenshot = useCallback(
+    async (base64Image: string): Promise<string | null> => {
+      try {
+        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "image/png" });
+
+        const fileName = `${pageId}-${Date.now()}.png`;
+        const { data, error } = await supabase.storage
+          .from("screenshots")
+          .upload(fileName, blob, {
+            contentType: "image/png",
+          });
+
+        if (error) {
+          console.error("Upload error:", error);
+          return null;
+        }
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("screenshots").getPublicUrl(data.path);
+
+        return publicUrl;
+      } catch (error) {
+        console.error("Upload failed:", error);
+        return null;
+      }
+    },
+    [pageId],
+  );
+
+  const notifyCreator = useCallback(
+    async (uploadedUrl: string | null) => {
+      try {
+        const { error } = await supabase.functions.invoke("notify-yes", {
+          body: { pageId, screenshotUrl: uploadedUrl, receiverName },
+        });
+        if (error) {
+          console.error("Notification error:", error);
+        }
+      } catch (error) {
+        console.error("Failed to notify creator:", error);
+      }
+    },
+    [pageId, receiverName],
+  );
+
+  const handleYesClick = useCallback(async () => {
+    if (yesClicked || isProcessing) return;
+
+    setIsProcessing(true);
+    setYesClicked(true);
+    triggerConfetti();
+    playChime();
+
+    if (CELEBRATION_YOUTUBE_VIDEO_ID) {
+      setTimeout(() => setShowCelebrationMusic(true), 400);
+    }
+
+    try {
+      // Wait for celebration view to render before capturing (confetti + UI transition)
+      await new Promise((resolve) => setTimeout(resolve, 2400));
+      const base64Image = await captureScreenshot();
+      let uploadedUrl: string | null = null;
+
+      if (base64Image) {
+        uploadedUrl = await uploadScreenshot(base64Image);
+        setScreenshotUrl(uploadedUrl);
+      }
+
+      // Record the YES event
+      const { error } = await supabase.from("yes_events").insert({
+        page_id: pageId,
+        screenshot_url: uploadedUrl,
+      });
+
+      if (error && !error.message.includes("duplicate")) {
+        console.error("Error recording yes:", error);
+      }
+
+      // Send notification to creator
+      await notifyCreator(uploadedUrl);
+    } catch (error) {
+      console.error("Error processing yes:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [
+    yesClicked,
+    isProcessing,
+    triggerConfetti,
+    captureScreenshot,
+    uploadScreenshot,
+    pageId,
+    notifyCreator,
+  ]);
+
+  const downloadScreenshot = useCallback(async () => {
+    if (screenshotUrl) {
+      const link = document.createElement("a");
+      link.href = screenshotUrl;
+      link.download = `valentine-${pageId}.png`;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      const base64Image = await captureScreenshot();
+      if (base64Image) {
+        const link = document.createElement("a");
+        link.href = base64Image;
+        link.download = `valentine-${pageId}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+  }, [screenshotUrl, pageId, captureScreenshot]);
+
+  // Theme-specific styles
+  const cardStyle = {
+    background: themeConfig.gradient,
+    "--theme-primary": themeConfig.colors.primary,
+    "--theme-foreground": themeConfig.colors.foreground,
+  } as React.CSSProperties;
+
+  return (
+    <div className="w-full max-w-lg mx-auto px-4" onClick={unlockAudio} role="presentation">
+      <div ref={screenshotRef} className="relative overflow-visible">
+        {floatingEmojis.map(({ id, emoji, x, y }) => (
+          <motion.span
+            key={id}
+            className="pointer-events-none absolute text-2xl sm:text-3xl drop-shadow-lg z-10"
+            style={{ left: `${x}%`, top: `${y}%` }}
+            initial={{ scale: 0, opacity: 1 }}
+            animate={{ scale: [0, 1.4, 1.2], opacity: [1, 1, 0] }}
+            transition={{ duration: 1.2, ease: "easeOut" }}
+          >
+            {emoji}
+          </motion.span>
+        ))}
+        <motion.div
+          ref={cardRef}
+          className="rounded-2xl p-8 relative overflow-visible text-center"
+          style={cardStyle}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, type: "spring" }}
+        >
+          <AnimatePresence mode="wait">
+            {!yesClicked ? (
+              <motion.div
+                key="question"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="space-y-6"
+              >
+              {/* Sender & Receiver */}
+              {(senderName || receiverName) && (
+                <p className="text-white/80 text-sm">
+                  {senderName && <>From <span className="font-semibold text-white">{senderName}</span></>}
+                  {senderName && receiverName && " · "}
+                  {receiverName && <>To <span className="font-semibold text-white">{receiverName}</span></>}
+                </p>
+              )}
+
+
+                {/* Please say yes – main visual for every theme */}
+                <motion.div
+                  className="flex justify-center"
+                  animate={{ scale: [1, 1.08, 1] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
+                >
+                  <img
+                    src={pleaseSayYesGif}
+                    alt="Please say yes"
+                    className="w-24 h-24 object-contain"
+                  />
+                </motion.div>
+
+                {/* Question */}
+                <h1 className="text-3xl sm:text-4xl font-serif font-bold text-white drop-shadow-lg">
+                  {question}
+                </h1>
+
+                {/* Begging message */}
+                <AnimatePresence mode="wait">
+                  {currentBeggingMessage && (
+                    <motion.p
+                      key={noAttempts}
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="text-lg text-white font-medium animate-wiggle"
+                    >
+                      {currentBeggingMessage}
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+
+                {/* Buttons */}
+                <div className="flex justify-center items-center gap-6 pt-4 relative min-h-[80px]">
+                  {/* YES Button */}
+                  <motion.div
+                    animate={{ scale: yesButtonSize }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Button
+                      onClick={handleYesClick}
+                      disabled={isProcessing}
+                      className="text-lg px-8 py-4 bg-white text-pink-600 hover:bg-white/90 shadow-xl pulse-glow"
+                    >
+                      <Heart className="w-5 h-5 mr-2" />
+                      Yes!
+                    </Button>
+                  </motion.div>
+
+                  {/* NO Button */}
+                  <motion.div
+                    animate={{ x: noPosition.x, y: noPosition.y }}
+                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  >
+                    <Button
+                      onMouseEnter={dodgeNo}
+                      onTouchStart={dodgeNo}
+                      variant="outline"
+                      className="text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30"
+                    >
+                      No
+                    </Button>
+                  </motion.div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="celebration"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, type: "spring" }}
+                className="space-y-6"
+              >
+                {/* You said yes – celebration video */}
+                <motion.div
+                  className="flex justify-center"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, type: "spring" }}
+                >
+                  <video
+                    src={youSaidYesVideo}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-32 h-32 object-contain"
+                    aria-label="You said yes"
+                  />
+                </motion.div>
+
+                {/* Sender name */}
+                {senderName && (
+                  <motion.h2
+                    className="text-4xl font-serif font-bold text-white drop-shadow-lg"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {senderName} {mainEmoji}
+                  </motion.h2>
+                )}
+
+                {/* Final message */}
+                <motion.p
+                  className="text-xl text-white font-medium"
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  {finalMessage}
+                </motion.p>
+
+                {/* Social link */}
+                {socialLink && socialLabel && (
+                  <motion.a
+                    href={socialLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className="inline-flex items-center gap-2 bg-white text-pink-600 px-6 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-shadow"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {socialLabel} 💌
+                  </motion.a>
+                )}
+
+                {/* Download button */}
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <Button
+                    onClick={downloadScreenshot}
+                    variant="outline"
+                    className="bg-white/20 border-white/40 text-white hover:bg-white/30 mt-4"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Save this moment 💾
+                  </Button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+      {showCelebrationMusic && CELEBRATION_YOUTUBE_VIDEO_ID && (
+        <div className="fixed bottom-4 right-4 z-50 rounded-lg overflow-hidden shadow-xl border-2 border-white/30">
+          <iframe
+            title="YouTube video player"
+            width="280"
+            height="158"
+            src={`https://www.youtube.com/embed/${CELEBRATION_YOUTUBE_VIDEO_ID}?autoplay=1&si=CP0RLpMBpUfD8N0A`}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+            className="block"
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ValentineCard;
