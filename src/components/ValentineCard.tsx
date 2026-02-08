@@ -131,8 +131,9 @@ const ValentineCard = ({
   const decoration = getDecorationById(decorationType);
   const mainEmoji = decoration.symbols[0] || "💕";
 
-  const pleaseSayYesGif = "/please-say-yes.gif";
-  const youSaidYesVideo = "/you-said-yes.mp4";
+  const pleaseSayYesGif = "/yes-moments/please-say-yes.gif";
+  const youSaidYesVideo = "/yes-moments/you-said-yes.mp4";
+  
 
   const currentBeggingMessage =
     noAttempts > 0
