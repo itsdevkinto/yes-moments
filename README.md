@@ -62,7 +62,20 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+**Option 1: GitHub Pages (host on GitHub)**
+
+1. Create a new repository on GitHub (e.g. `yes-moment-capture` or `valentine-2026`).
+2. Add the remote and push:
+   ```sh
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   git push -u origin main
+   ```
+3. On GitHub: **Settings → Pages → Build and deployment**: set **Source** to **GitHub Actions**.
+4. After the workflow runs, the site will be at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`.
+
+**Option 2: Lovable**
+
+Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share → Publish.
 
 ## Can I connect a custom domain to my Lovable project?
 
