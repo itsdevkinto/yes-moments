@@ -115,7 +115,7 @@ const ValentineCreator = ({ onDecorationChange }: ValentineCreatorProps) => {
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/v/${pageId}`;
+      const link = `${window.location.origin}/yes-moments/v/${pageId}`;
       setCreatedLink(link);
       toast({
         title: "Valentine created! 💕",
