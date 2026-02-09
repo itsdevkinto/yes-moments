@@ -75,6 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
     const screenshotSection = screenshotUrl
       ? `<p style="margin: 20px 0;"><a href="${screenshotUrl}" style="background: #ec4899; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">📸 View Screenshot</a></p>`
       : "";
+      
 
     const htmlBody = `
       <!DOCTYPE html>

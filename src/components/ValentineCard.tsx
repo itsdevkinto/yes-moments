@@ -12,7 +12,18 @@ import {
   DecorationType,
 } from "@/lib/themes";
 
-const NO_DODGE_EMOJIS = ["😭", "🥺", "💔", "😢", "❤️", "💕", "😿", "🙏", "✨", "💔"];
+const NO_DODGE_EMOJIS = [
+  "😭",
+  "🥺",
+  "💔",
+  "😢",
+  "❤️",
+  "💕",
+  "😿",
+  "🙏",
+  "✨",
+  "💔",
+];
 const BEGGING_COOLDOWN_MS = 600;
 
 /**
@@ -27,7 +38,10 @@ function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
   if (!sharedAudioContext) {
     try {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
       sharedAudioContext = new Ctx();
     } catch {
       return null;
@@ -112,6 +126,9 @@ const ValentineCard = ({
   theme = "romantic",
   decorationType = "hearts",
 }: ValentineCardProps) => {
+  const blockYesRef = useRef(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [noDodging, setNoDodging] = useState(false);
   const [noPosition, setNoPosition] = useState({ x: 0, y: 0 });
   const [noAttempts, setNoAttempts] = useState(0);
   const [yesClicked, setYesClicked] = useState(alreadyAccepted);
@@ -133,7 +150,6 @@ const ValentineCard = ({
 
   const pleaseSayYesGif = "/yes-moments/please-say-yes.gif";
   const youSaidYesVideo = "/yes-moments/you-said-yes.mp4";
-  
 
   const currentBeggingMessage =
     noAttempts > 0
@@ -142,7 +158,7 @@ const ValentineCard = ({
 
   const hideNoButton = noAttempts > 10;
 
-  const yesButtonSize = Math.min(1 + noAttempts * .5, 3.8);
+  const yesButtonSize = Math.min(1 + noAttempts * 0.5, 3.8);
 
   const BASE_PEEK = 120; // 👈 much more visible
   const cursorRef = useRef({ x: 0, y: 0 });
@@ -154,28 +170,67 @@ const ValentineCard = ({
     window.addEventListener("mousemove", handleMove);
     return () => window.removeEventListener("mousemove", handleMove);
   }, []);
-  
 
-  const dodgeNo = useCallback(() => {
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    setIsMobile(mq.matches);
+
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const dodgeNoMobile = useCallback(() => {
+    setNoDodging(true);
+    setTimeout(() => setNoDodging(false), 200);
+    const maxX = 150;
+    const maxY = 100;
+    const newX = (Math.random() - 0.5) * maxX * 2;
+    const newY = (Math.random() - 0.5) * maxY * 2;
+    setNoPosition({ x: newX, y: newY });
+    setNoAttempts((prev) => prev + 1);
+
+    playPop();
+    const count = 2 + Math.floor(Math.random() * 2);
+    const newEmojis: { id: number; emoji: string; x: number; y: number }[] = [];
+    for (let i = 0; i < count; i++) {
+      emojiIdRef.current += 1;
+      newEmojis.push({
+        id: emojiIdRef.current,
+        emoji:
+          NO_DODGE_EMOJIS[Math.floor(Math.random() * NO_DODGE_EMOJIS.length)],
+        x: 15 + Math.random() * 70,
+        y: 10 + Math.random() * 50,
+      });
+    }
+    setFloatingEmojis((prev) => [...prev, ...newEmojis]);
+    newEmojis.forEach((e) => {
+      setTimeout(() => {
+        setFloatingEmojis((list) => list.filter((x) => x.id !== e.id));
+      }, 1600);
+    });
+  }, []);
+
+  const dodgeNoDesktop = useCallback(() => {
     const now = Date.now();
     if (now - lastDodgeTimeRef.current < BEGGING_COOLDOWN_MS) return;
     lastDodgeTimeRef.current = now;
-  
+
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-  
+
     // Get cursor distance from center (for tease boost)
     const dx = cursorRef.current.x - vw / 2;
     const dy = cursorRef.current.y - vh / 2;
     const distance = Math.hypot(dx, dy);
     const teaseBoost = Math.max(0, 180 - distance); // closer = more aggressive
     const peek = BASE_PEEK + teaseBoost * 0.4;
-  
+
     // Decide which edge to go towards
     const edge = Math.random();
     let targetX: number;
     let targetY: number;
-  
+
     if (edge < 0.25) {
       // left edge
       targetX = -vw / 2 + peek;
@@ -193,40 +248,40 @@ const ValentineCard = ({
       targetX = (Math.random() - 0.5) * vw * 0.7;
       targetY = vh / 2 - peek;
     }
-  
+
     // === IMPORTANT: CLAMP so button stays visible ===
     // Assuming your button is ~100–140px wide/tall
-    const buttonSize = 140;           // adjust to your actual button width/height
-    const margin = 90;                // minimum visible pixels on each side
-  
+    const buttonSize = 140; // adjust to your actual button width/height
+    const margin = 90; // minimum visible pixels on each side
+
     const minX = -vw / 2 + buttonSize / 2 + margin;
     const maxX = vw / 2 - buttonSize / 2 - margin;
     const minY = -vh / 2 + buttonSize / 2 + margin;
     const maxY = vh / 2 - buttonSize / 2 - margin;
-  
+
     targetX = Math.max(minX, Math.min(maxX, targetX));
     targetY = Math.max(minY, Math.min(maxY, targetY));
-  
+
     // Optional: even more visible if cursor is very close
     if (distance < 120) {
       targetX = Math.max(minX + 40, Math.min(maxX - 40, targetX));
       targetY = Math.max(minY + 40, Math.min(maxY - 40, targetY));
     }
-  
+
     // Apply fake-out hop
     setNoPosition((pos) => ({
       x: pos.x * 0.5,
       y: pos.y * 0.5,
     }));
-  
+
     setTimeout(() => {
       setNoPosition({ x: targetX, y: targetY });
     }, 70);
-  
+
     // speed variation
     const speed = 0.35 + Math.random() * 0.5;
     document.documentElement.style.setProperty("--fly-speed", `${speed}s`);
-  
+
     setNoAttempts((p) => p + 1);
 
     playPop();
@@ -236,7 +291,8 @@ const ValentineCard = ({
       emojiIdRef.current += 1;
       newEmojis.push({
         id: emojiIdRef.current,
-        emoji: NO_DODGE_EMOJIS[Math.floor(Math.random() * NO_DODGE_EMOJIS.length)],
+        emoji:
+          NO_DODGE_EMOJIS[Math.floor(Math.random() * NO_DODGE_EMOJIS.length)],
         x: 15 + Math.random() * 70,
         y: 10 + Math.random() * 50,
       });
@@ -248,6 +304,31 @@ const ValentineCard = ({
       }, 1600);
     });
   }, []);
+
+  const dodgeNo = useCallback(() => {
+    if (isMobile) {
+      dodgeNoMobile();
+    } else {
+      dodgeNoDesktop();
+    }
+  }, [isMobile, dodgeNoMobile, dodgeNoDesktop]);
+
+  const handleNoTouch = (e: React.TouchEvent) => {
+    blockYesRef.current = true;
+  
+    e.preventDefault();
+    e.stopPropagation();
+  
+    dodgeNo();
+  
+    // Re-enable YES on next frame (after click synthesis window)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        blockYesRef.current = false;
+      });
+    });
+  };
+  
 
   const triggerConfetti = useCallback(() => {
     const duration = 4000;
@@ -388,6 +469,7 @@ const ValentineCard = ({
   );
 
   const handleYesClick = useCallback(async () => {
+    if (blockYesRef.current) return;
     if (yesClicked || isProcessing) return;
 
     setIsProcessing(true);
@@ -467,7 +549,11 @@ const ValentineCard = ({
   } as React.CSSProperties;
 
   return (
-    <div className="w-full max-w-lg mx-auto px-4" onClick={unlockAudio} role="presentation">
+    <div
+      className="w-full max-w-lg mx-auto px-4"
+      onClick={unlockAudio}
+      role="presentation"
+    >
       <div ref={screenshotRef} className="relative overflow-visible">
         {floatingEmojis.map(({ id, emoji, x, y }) => (
           <motion.span
@@ -498,15 +584,28 @@ const ValentineCard = ({
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="space-y-6"
               >
-              {/* Sender & Receiver */}
-              {(senderName || receiverName) && (
-                <p className="text-white/80 text-sm">
-                  {senderName && <>From <span className="font-semibold text-white">{senderName}</span></>}
-                  {senderName && receiverName && " · "}
-                  {receiverName && <>To <span className="font-semibold text-white">{receiverName}</span></>}
-                </p>
-              )}
-
+                {/* Sender & Receiver */}
+                {(senderName || receiverName) && (
+                  <p className="text-white/80 text-sm">
+                    {senderName && (
+                      <>
+                        From{" "}
+                        <span className="font-semibold text-white">
+                          {senderName}
+                        </span>
+                      </>
+                    )}
+                    {senderName && receiverName && " · "}
+                    {receiverName && (
+                      <>
+                        To{" "}
+                        <span className="font-semibold text-white">
+                          {receiverName}
+                        </span>
+                      </>
+                    )}
+                  </p>
+                )}
 
                 {/* Please say yes – main visual for every theme */}
                 <motion.div
@@ -545,12 +644,13 @@ const ValentineCard = ({
                 <div className="flex justify-center items-center gap-6 pt-4 relative min-h-[80px]">
                   {/* YES Button */}
                   <motion.div
+                    className="relative z-10"
                     animate={{ scale: yesButtonSize }}
                     transition={{ type: "spring", stiffness: 300 }}
                   >
                     <Button
                       onClick={handleYesClick}
-                      disabled={isProcessing}
+                      disabled={isProcessing || (isMobile && blockYesRef.current)}
                       className="text-lg px-8 py-4 bg-white text-pink-600 hover:bg-white/90 shadow-xl pulse-glow"
                     >
                       <Heart className="w-5 h-5 mr-2" />
@@ -561,11 +661,19 @@ const ValentineCard = ({
                   {/* NO Button */}
                   <motion.div
                     animate={{ x: noPosition.x, y: noPosition.y }}
+                    style={{ pointerEvents: noDodging ? "none" : "auto" }}
+                    className="relative z-20"
                     transition={{ type: "spring", stiffness: 500, damping: 25 }}
                   >
                     <Button
-                      onMouseEnter={dodgeNo}
-                      onTouchStart={dodgeNo}
+                      onMouseEnter={!isMobile ? dodgeNo : undefined}
+                      onTouchStart={isMobile ? handleNoTouch : undefined}
+                      onClick={(e) => {
+                        if (isMobile) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
                       variant="outline"
                       className={`text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30 ${hideNoButton ? "" : ""} no-button ${noAttempts > 4 ? "shake" : ""}`}
                     >
