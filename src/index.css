@@ -12,7 +12,7 @@
 @layer base {
   :root {
     /* Romantic color palette */
-    --background: 20 50% 98%;
+    --background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
     --foreground: 350 30% 20%;
 
     --card: 20 40% 97%;
@@ -205,6 +205,19 @@
       transform: translateY(-20vh) rotate(720deg) scale(1);
     }
   }
+
+  .no-button.shake {
+    animation: shake 0.35s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0% { transform: translate(var(--x), var(--y)) rotate(0deg); }
+    25% { transform: translate(calc(var(--x) - 3px), var(--y)) rotate(-2deg); }
+    50% { transform: translate(calc(var(--x) + 3px), var(--y)) rotate(2deg); }
+    75% { transform: translate(calc(var(--x) - 2px), var(--y)) rotate(-1deg); }
+    100% { transform: translate(var(--x), var(--y)) rotate(0deg); }
+  }
+  
   
   .pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
@@ -219,3 +232,5 @@
     }
   }
 }
+
+

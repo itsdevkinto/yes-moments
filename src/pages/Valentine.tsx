@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, Loader2 } from "lucide-react";
@@ -82,8 +82,14 @@ const Valentine = () => {
   useEffect(() => {
     if (pageData) {
       const theme = getThemeById(pageData.theme);
-      document.documentElement.style.setProperty("--background", theme.colors.background);
-      document.documentElement.style.setProperty("--foreground", theme.colors.foreground);
+      document.documentElement.style.setProperty(
+        "--background",
+        theme.colors.background,
+      );
+      document.documentElement.style.setProperty(
+        "--foreground",
+        theme.colors.foreground,
+      );
     }
     return () => {
       // Reset to default on unmount
@@ -129,28 +135,43 @@ const Valentine = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-background overflow-hidden">
-      <FloatingDecorations 
-        decorationType={(pageData?.decoration_type || "hearts") as DecorationType}
-        customImageUrl={pageData?.custom_decoration_url}
-      />
-      {pageData && (
-        <ValentineCard
-          pageId={pageData.id}
-          question={pageData.question}
-          beggingMessages={pageData.begging_messages}
-          finalMessage={pageData.final_message}
-          socialLabel={pageData.social_label}
-          socialLink={pageData.social_link}
-          senderName={pageData.sender_name}
-          receiverName={pageData.receiver_name ?? null}
-          alreadyAccepted={!!yesEvent}
-          existingScreenshotUrl={yesEvent?.screenshot_url}
-          theme={pageData.theme}
-          decorationType={(pageData.decoration_type || "hearts") as DecorationType}
-        />
-      )}
-    </div>
+    <>
+      {/* Test layer – full screen, no props dependency */}
+      <div className="fixed inset-0 pointer-events-none z-[-1]">
+        <FloatingDecorations decorationType="hearts" customImageUrl={null} />
+      </div>
+  
+      {/* Your normal content – keep it as is for now */}
+      <div className="relative min-h-screen flex items-center justify-center py-12 px-4 bg-background bg-linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%)">
+        {loading ? (
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
+            <p className="mt-4 text-muted-foreground">Loading...</p>
+          </div>
+        ) : notFound ? (
+          <div className="text-center p-8">
+            <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Not Found</h1>
+            <p className="text-muted-foreground">This page doesn't exist 💔</p>
+          </div>
+        ) : pageData ? (
+          <ValentineCard
+            pageId={pageData.id}
+            question={pageData.question}
+            beggingMessages={pageData.begging_messages}
+            finalMessage={pageData.final_message}
+            socialLabel={pageData.social_label}
+            socialLink={pageData.social_link}
+            senderName={pageData.sender_name}
+            receiverName={pageData.receiver_name ?? null}
+            alreadyAccepted={!!yesEvent}
+            existingScreenshotUrl={yesEvent?.screenshot_url}
+            theme={pageData.theme}
+            decorationType={(pageData.decoration_type || "hearts") as DecorationType}
+          />
+        ) : null}
+      </div>
+    </>
   );
 };
 

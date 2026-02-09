@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Download, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -140,19 +140,94 @@ const ValentineCard = ({
       ? beggingMessages[Math.min(noAttempts - 1, beggingMessages.length - 1)]
       : null;
 
-  const yesButtonSize = Math.min(1 + noAttempts * 0.15, 2.5);
+  const hideNoButton = noAttempts > 10;
+
+  const yesButtonSize = Math.min(1 + noAttempts * .5);
+
+  const BASE_PEEK = 120; // 👈 much more visible
+  const cursorRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      cursorRef.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", handleMove);
+    return () => window.removeEventListener("mousemove", handleMove);
+  }, []);
+  
 
   const dodgeNo = useCallback(() => {
     const now = Date.now();
     if (now - lastDodgeTimeRef.current < BEGGING_COOLDOWN_MS) return;
     lastDodgeTimeRef.current = now;
-
-    const maxX = 150;
-    const maxY = 100;
-    const newX = (Math.random() - 0.5) * maxX * 2;
-    const newY = (Math.random() - 0.5) * maxY * 2;
-    setNoPosition({ x: newX, y: newY });
-    setNoAttempts((prev) => prev + 1);
+  
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+  
+    // Get cursor distance from center (for tease boost)
+    const dx = cursorRef.current.x - vw / 2;
+    const dy = cursorRef.current.y - vh / 2;
+    const distance = Math.hypot(dx, dy);
+    const teaseBoost = Math.max(0, 180 - distance); // closer = more aggressive
+    const peek = BASE_PEEK + teaseBoost * 0.4;
+  
+    // Decide which edge to go towards
+    const edge = Math.random();
+    let targetX: number;
+    let targetY: number;
+  
+    if (edge < 0.25) {
+      // left edge
+      targetX = -vw / 2 + peek;
+      targetY = (Math.random() - 0.5) * vh * 0.7;
+    } else if (edge < 0.5) {
+      // right edge
+      targetX = vw / 2 - peek;
+      targetY = (Math.random() - 0.5) * vh * 0.7;
+    } else if (edge < 0.75) {
+      // top edge
+      targetX = (Math.random() - 0.5) * vw * 0.7;
+      targetY = -vh / 2 + peek;
+    } else {
+      // bottom edge
+      targetX = (Math.random() - 0.5) * vw * 0.7;
+      targetY = vh / 2 - peek;
+    }
+  
+    // === IMPORTANT: CLAMP so button stays visible ===
+    // Assuming your button is ~100–140px wide/tall
+    const buttonSize = 140;           // adjust to your actual button width/height
+    const margin = 90;                // minimum visible pixels on each side
+  
+    const minX = -vw / 2 + buttonSize / 2 + margin;
+    const maxX = vw / 2 - buttonSize / 2 - margin;
+    const minY = -vh / 2 + buttonSize / 2 + margin;
+    const maxY = vh / 2 - buttonSize / 2 - margin;
+  
+    targetX = Math.max(minX, Math.min(maxX, targetX));
+    targetY = Math.max(minY, Math.min(maxY, targetY));
+  
+    // Optional: even more visible if cursor is very close
+    if (distance < 120) {
+      targetX = Math.max(minX + 40, Math.min(maxX - 40, targetX));
+      targetY = Math.max(minY + 40, Math.min(maxY - 40, targetY));
+    }
+  
+    // Apply fake-out hop
+    setNoPosition((pos) => ({
+      x: pos.x * 0.5,
+      y: pos.y * 0.5,
+    }));
+  
+    setTimeout(() => {
+      setNoPosition({ x: targetX, y: targetY });
+    }, 70);
+  
+    // speed variation
+    const speed = 0.35 + Math.random() * 0.5;
+    document.documentElement.style.setProperty("--fly-speed", `${speed}s`);
+  
+    setNoAttempts((p) => p + 1);
 
     playPop();
     const count = 2 + Math.floor(Math.random() * 2);
@@ -492,7 +567,7 @@ const ValentineCard = ({
                       onMouseEnter={dodgeNo}
                       onTouchStart={dodgeNo}
                       variant="outline"
-                      className="text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30"
+                      className={`text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30 ${hideNoButton ? "" : ""} no-button ${noAttempts > 4 ? "shake" : ""}`}
                     >
                       No
                     </Button>

@@ -37,6 +37,13 @@ const FloatingDecorations = ({ decorationType, customImageUrl }: FloatingDecorat
     return elements;
   }, [decorationType, customImageUrl, decoration.symbols, decoration.emoji]);
 
+  // Inside FloatingDecorations.tsx
+console.log("FloatingDecorations mounted", {
+  decorationType,
+  customImageUrl,
+  isVisible: !!decorationType // or whatever condition you have
+});
+
   return (
     <div className="floating-hearts">
       {items.map((item) => (
@@ -67,6 +74,9 @@ const FloatingDecorations = ({ decorationType, customImageUrl }: FloatingDecorat
       ))}
     </div>
   );
+  
 };
+
+
 
 export default FloatingDecorations;
