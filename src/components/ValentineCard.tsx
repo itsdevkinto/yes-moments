@@ -142,7 +142,7 @@ const ValentineCard = ({
 
   const hideNoButton = noAttempts > 10;
 
-  const yesButtonSize = Math.min(1 + noAttempts * .5);
+  const yesButtonSize = Math.min(1 + noAttempts * .5, 3.8);
 
   const BASE_PEEK = 120; // 👈 much more visible
   const cursorRef = useRef({ x: 0, y: 0 });

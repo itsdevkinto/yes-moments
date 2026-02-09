@@ -79,12 +79,13 @@ const Valentine = () => {
   }, [pageId]);
 
   // Apply theme colors to page
+  // Apply theme colors to page
   useEffect(() => {
     if (pageData) {
       const theme = getThemeById(pageData.theme);
       document.documentElement.style.setProperty(
         "--background",
-        theme.colors.background,
+        theme.colors.lightBackground,
       );
       document.documentElement.style.setProperty(
         "--foreground",
@@ -134,27 +135,36 @@ const Valentine = () => {
     );
   }
 
+  console.log("Valentine page - FloatingDecorations props:", {
+    decorationTypeProp: pageData?.decoration_type,
+    fallbackUsed: pageData?.decoration_type || "hearts",
+    customUrl: pageData?.custom_decoration_url,
+    pageDataLoaded: !!pageData,
+  });
+
   return (
     <>
-      {/* Test layer – full screen, no props dependency */}
-      <div className="fixed inset-0 pointer-events-none z-[-1]">
-        <FloatingDecorations decorationType="hearts" customImageUrl={null} />
+      {/* Background layer with gradient + floating decorations */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] bg-background">
+        <FloatingDecorations
+          decorationType={
+            (pageData?.decoration_type || "hearts") as DecorationType
+          }
+          customImageUrl={pageData?.custom_decoration_url}
+        />
       </div>
-  
-      {/* Your normal content – keep it as is for now */}
-      <div className="relative min-h-screen flex items-center justify-center py-12 px-4 bg-background bg-linear-gradient(135deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%)">
-        {loading ? (
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-primary mx-auto animate-spin" />
-            <p className="mt-4 text-muted-foreground">Loading...</p>
-          </div>
-        ) : notFound ? (
-          <div className="text-center p-8">
-            <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Not Found</h1>
-            <p className="text-muted-foreground">This page doesn't exist 💔</p>
-          </div>
-        ) : pageData ? (
+
+      {/* Main content – now transparent so decorations show through */}
+      <div className="relative min-h-screen flex items-center justify-center py-12 px-4 bg-transparent">
+        <div className="absolute inset-0 pointer-events-none z-[-1]">
+          <FloatingDecorations
+            decorationType={
+              (pageData?.decoration_type || "hearts") as DecorationType
+            }
+            customImageUrl={pageData?.custom_decoration_url}
+          />
+        </div>
+        {pageData ? (
           <ValentineCard
             pageId={pageData.id}
             question={pageData.question}
@@ -167,7 +177,9 @@ const Valentine = () => {
             alreadyAccepted={!!yesEvent}
             existingScreenshotUrl={yesEvent?.screenshot_url}
             theme={pageData.theme}
-            decorationType={(pageData.decoration_type || "hearts") as DecorationType}
+            decorationType={
+              (pageData.decoration_type || "hearts") as DecorationType
+            }
           />
         ) : null}
       </div>

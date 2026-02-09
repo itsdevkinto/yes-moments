@@ -10,7 +10,7 @@ const FloatingDecorations = ({ decorationType, customImageUrl }: FloatingDecorat
   const decoration = getDecorationById(decorationType);
   
   const items = useMemo(() => {
-    const count = 15;
+    const count = 30;
     const elements = [];
     const symbols = decoration.symbols.length > 0
       ? decoration.symbols

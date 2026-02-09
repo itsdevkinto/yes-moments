@@ -11,6 +11,7 @@ export interface ThemeConfig {
     foreground: string;
     muted: string;
     card: string;
+    lightBackground: string;
   };
   gradient: string;
 }
@@ -18,7 +19,7 @@ export interface ThemeConfig {
 export const themes: ThemeConfig[] = [
   {
     id: "Default",
-    name: "",
+    name: "Default",
     emoji: "🌹",
     colors: {
       primary: "346 77% 50%",
@@ -28,12 +29,13 @@ export const themes: ThemeConfig[] = [
       foreground: "350 30% 20%",
       muted: "350 15% 45%",
       card: "20 40% 97%",
+      lightBackground: "346 60% 90%",
     },
     gradient: "linear-gradient(135deg, hsl(350 70% 75%) 0%, hsl(346 77% 60%) 50%, hsl(348 83% 50%) 100%)",
   },
   {
     id: "Blue",
-    name: "",
+    name: "Blue",
     emoji: "🌊",
     colors: {
       primary: "210 80% 50%",
@@ -43,12 +45,13 @@ export const themes: ThemeConfig[] = [
       foreground: "210 30% 20%",
       muted: "210 15% 45%",
       card: "210 40% 97%",
+      lightBackground: "210 70% 85%",
     },
     gradient: "linear-gradient(135deg, hsl(210 70% 75%) 0%, hsl(210 80% 55%) 50%, hsl(200 80% 45%) 100%)",
   },
   {
     id: "purple",
-    name: "",
+    name: "Purple",
     emoji: "🌙",
     colors: {
       primary: "260 70% 60%",
@@ -58,12 +61,13 @@ export const themes: ThemeConfig[] = [
       foreground: "260 20% 95%",
       muted: "260 20% 55%",
       card: "260 25% 15%",
+      lightBackground: "260 50% 20%",
     },
     gradient: "linear-gradient(135deg, hsl(260 50% 40%) 0%, hsl(280 60% 50%) 50%, hsl(300 50% 45%) 100%)",
   },
   {
     id: "Red",
-    name: "",
+    name: "Red",
     emoji: "❤️‍🔥",
     colors: {
       primary: "0 85% 45%",
@@ -73,12 +77,13 @@ export const themes: ThemeConfig[] = [
       foreground: "0 40% 15%",
       muted: "0 20% 45%",
       card: "0 40% 96%",
+      lightBackground: "0 80% 88%",
     },
     gradient: "linear-gradient(135deg, hsl(0 70% 65%) 0%, hsl(0 85% 50%) 50%, hsl(350 80% 40%) 100%)",
   },
   {
     id: "golden",
-    name: "",
+    name: "Gold",
     emoji: "✨",
     colors: {
       primary: "40 90% 50%",
@@ -88,6 +93,7 @@ export const themes: ThemeConfig[] = [
       foreground: "30 40% 20%",
       muted: "40 25% 45%",
       card: "45 50% 97%",
+      lightBackground: "40 80% 85%",
     },
     gradient: "linear-gradient(135deg, hsl(50 80% 70%) 0%, hsl(40 90% 55%) 50%, hsl(25 85% 50%) 100%)",
   },
