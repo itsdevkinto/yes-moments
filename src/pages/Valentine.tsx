@@ -217,14 +217,7 @@ const Valentine = () => {
         />
       </div>
       <div className="relative min-h-screen flex items-center justify-center py-12 px-4 bg-transparent">
-        <div className="absolute inset-0 pointer-events-none z-[-1]">
-          <FloatingDecorations
-            decorationType={
-              (pageData?.decoration_type || "hearts") as DecorationType
-            }
-            customImageUrl={pageData?.custom_decoration_url}
-          />
-        </div>      
+  
           {showIntro ? (
             <div
               id="envelope"

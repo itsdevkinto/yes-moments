@@ -156,8 +156,9 @@ const ValentineCard = ({
 
   const hideNoButton = noAttempts > 10;
 
-  const yesButtonSize = Math.min(1 + noAttempts * 0.5, 3.8);
-
+  const yesButtonSize = isMobile
+  ? Math.min(1 + noAttempts * 0.13, 3.8)
+  : Math.min(1 + noAttempts * 0.16, 3.8);
   const BASE_PEEK = 120; // 👈 much more visible
   const cursorRef = useRef({ x: 0, y: 0 });
 
@@ -449,8 +450,6 @@ const ValentineCard = ({
     [pageId],
   );
 
-
-
   const notifyCreator = useCallback(
     async (uploadedUrl: string | null) => {
       try {
@@ -643,14 +642,22 @@ const ValentineCard = ({
                   <motion.div
                     className="relative z-10"
                     animate={{ scale: yesButtonSize }}
-                    transition={{ type: "spring", stiffness: 300 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 280,
+                      damping: 22,
+                      mass: 0.8,
+                    }}
+                    style={{ willChange: "transform" }} // ← important
+                    layout="position"
                   >
                     <Button
                       onClick={handleYesClick}
                       disabled={
                         isProcessing || (isMobile && blockYesRef.current)
                       }
-                      className="text-lg px-8 py-4 bg-white text-pink-600 hover:bg-white/90 shadow-xl pulse-glow"
+                      className={`text-lg px-8 py-4 bg-white disabled:opacity-100 text-pink-600 hover:bg-white/90 shadow-xl 
+                        ${!isMobile ? 'pulse-glow' : ''}`}   // ← only pulse on desktop
                     >
                       <Heart className="w-5 h-5 mr-2" />
                       Yes!
@@ -662,7 +669,7 @@ const ValentineCard = ({
                     animate={{ x: noPosition.x, y: noPosition.y }}
                     style={{ pointerEvents: noDodging ? "none" : "auto" }}
                     className="relative z-20"
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    transition={{type: "spring", stiffness: 500, damping: 25 }}
                   >
                     <Button
                       onMouseEnter={!isMobile ? dodgeNo : undefined}
@@ -674,7 +681,7 @@ const ValentineCard = ({
                         }
                       }}
                       variant="outline"
-                      className={`text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30 ${hideNoButton ? "" : ""} no-button ${noAttempts > 4 ? "shake" : ""}`}
+                      className={`text-lg px-8 py-4 bg-gray-500/40 border-white/40 text-white hover:bg-white/30 no-button ${noAttempts > 4 ? "lg:shake" : ""}`}
                     >
                       No
                     </Button>
