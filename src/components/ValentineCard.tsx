@@ -31,8 +31,6 @@ const BEGGING_COOLDOWN_MS = 600;
  * Use the video ID from a YouTube URL: youtube.com/watch?v=VIDEO_ID
  * If you see "Video unavailable": the uploader must allow embedding (YouTube Studio → Video → Show more → Allow embedding).
  */
-const CELEBRATION_YOUTUBE_VIDEO_ID = "GOXGbr10i8s";
-
 let sharedAudioContext: AudioContext | null = null;
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -315,12 +313,12 @@ const ValentineCard = ({
 
   const handleNoTouch = (e: React.TouchEvent) => {
     blockYesRef.current = true;
-  
+
     e.preventDefault();
     e.stopPropagation();
-  
+
     dodgeNo();
-  
+
     // Re-enable YES on next frame (after click synthesis window)
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -328,7 +326,6 @@ const ValentineCard = ({
       });
     });
   };
-  
 
   const triggerConfetti = useCallback(() => {
     const duration = 4000;
@@ -452,6 +449,8 @@ const ValentineCard = ({
     [pageId],
   );
 
+
+
   const notifyCreator = useCallback(
     async (uploadedUrl: string | null) => {
       try {
@@ -476,10 +475,6 @@ const ValentineCard = ({
     setYesClicked(true);
     triggerConfetti();
     playChime();
-
-    if (CELEBRATION_YOUTUBE_VIDEO_ID) {
-      setTimeout(() => setShowCelebrationMusic(true), 400);
-    }
 
     try {
       // Wait for celebration view to render before capturing (confetti + UI transition)
@@ -546,6 +541,8 @@ const ValentineCard = ({
     background: themeConfig.gradient,
     "--theme-primary": themeConfig.colors.primary,
     "--theme-foreground": themeConfig.colors.foreground,
+    "--accent-light": "color-mix(in srgb, var(--theme-primary) 80%, white)",
+    "--accent-vlight": "color-mix(in srgb, var(--theme-primary) 10%, white)",
   } as React.CSSProperties;
 
   return (
@@ -650,7 +647,9 @@ const ValentineCard = ({
                   >
                     <Button
                       onClick={handleYesClick}
-                      disabled={isProcessing || (isMobile && blockYesRef.current)}
+                      disabled={
+                        isProcessing || (isMobile && blockYesRef.current)
+                      }
                       className="text-lg px-8 py-4 bg-white text-pink-600 hover:bg-white/90 shadow-xl pulse-glow"
                     >
                       <Heart className="w-5 h-5 mr-2" />
@@ -766,20 +765,6 @@ const ValentineCard = ({
           </AnimatePresence>
         </motion.div>
       </div>
-      {showCelebrationMusic && CELEBRATION_YOUTUBE_VIDEO_ID && (
-        <div className="fixed bottom-4 right-4 z-50 rounded-lg overflow-hidden shadow-xl border-2 border-white/30">
-          <iframe
-            title="YouTube video player"
-            width="280"
-            height="158"
-            src={`https://www.youtube.com/embed/${CELEBRATION_YOUTUBE_VIDEO_ID}?autoplay=1&si=CP0RLpMBpUfD8N0A`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
-            className="block"
-          />
-        </div>
-      )}
     </div>
   );
 };
