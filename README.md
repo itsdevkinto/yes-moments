@@ -1,86 +1,51 @@
-# Welcome to your Lovable project
+Yes Moments
+Yes Moments is a web application that enables users to create personalized, interactive digital Valentine cards. The platform allows senders to craft a unique proposal experience featuring an animated envelope, custom themes, floating decorations, and a shareable link. Upon acceptance, the system records the event and triggers automated notifications.
+Live Demo
+https://itsdevkinto.github.io/yes-moments/
+Features
 
-## Project info
+Animated envelope opening sequence with custom CSS and Framer Motion
+Dynamic floating decorations supporting multiple types and custom image uploads
+Multiple configurable themes with real-time color application
+Custom question, begging messages, final message, and optional social links
+Acceptance tracking and screenshot capture
+Background music with user-initiated autoplay
+Fully responsive design
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Technical Architecture & Development Process
+The project was developed entirely from scratch in a local IDE after reviewing an initial boilerplate concept. The frontend is built as a single-page React application, while the backend relies on Supabase for data persistence and real-time capabilities.
+Key implementation details:
 
-## How can I edit this code?
+Frontend: React with TypeScript, Vite as the build tool, Tailwind CSS for styling, and shadcn/ui for component primitives. Complex animations (envelope opening, floating elements) were implemented using a combination of CSS keyframes and Framer Motion.
+State & Routing: React Router for dynamic page handling based on unique shareable IDs.
+Data Layer: Supabase handles storage of Valentine pages, yes-event logging, and basic authentication flows.
+Notifications: When a recipient accepts, Supabase Edge Functions process the event and trigger emails via Resend.
+Automation: n8n workflows were integrated to orchestrate post-acceptance actions, including email delivery and logging.
 
-There are several ways of editing your application.
+A significant portion of development time was spent integrating the backend services. Because the application required reliable transactional emails and automated workflows on user acceptance, I had to learn and implement Supabase Edge Functions, Resend for email delivery, and n8n for workflow automation. These technologies were not part of my initial stack and required dedicated research and testing to ensure reliable triggering and delivery.
+The entire application was coded, tested, and refined locally before deployment to GitHub Pages.
+Challenges
 
-**Use Lovable**
+Coordinating real-time acceptance detection with automated email delivery required careful design of Supabase Edge Functions and n8n workflows.
+Ensuring smooth animations (particularly the envelope and floating decorations) across different devices demanded extensive performance optimization.
+Implementing secure, shareable unique links while maintaining clean URL structures using React Router and Supabase.
+Balancing visual polish with performance, especially when rendering large numbers of animated floating elements.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Technologies Used
 
-Changes made via Lovable will be committed automatically to this repo.
+React + TypeScript
+Vite
+Tailwind CSS
+shadcn/ui
+Framer Motion
+Supabase (Database + Edge Functions)
+Resend (Transactional Email)
+n8n (Workflow Automation)
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Local Development
+Bashgit clone https://github.com/itsdevkinto/yes-moments.git
+cd yes-moments
+npm install
 npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-**Option 1: GitHub Pages (host on GitHub)**
-
-1. Create a new repository on GitHub (e.g. `yes-moment-capture` or `valentine-2026`).
-2. Add the remote and push:
-   ```sh
-   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-   git push -u origin main
-   ```
-3. On GitHub: **Settings → Pages → Build and deployment**: set **Source** to **GitHub Actions**.
-4. After the workflow runs, the site will be at `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`.
-
-**Option 2: Lovable**
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share → Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Deployment
+The application is deployed on GitHub Pages using GitHub Actions. For alternative hosting (Vercel or Netlify), the build output from npm run build can be used directly.
