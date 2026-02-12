@@ -18,7 +18,7 @@ Yes Moments is a web application that enables users to create personalized, inte
 
 ## Technical Architecture & Development Process
 
-The project was developed entirely from scratch in a local IDE after reviewing an initial boilerplate concept. The frontend is built as a single-page React application, while the backend relies on Supabase for data persistence and real-time capabilities.
+The project was developed in a local IDE after reviewing an initial boilerplate concept in Lovable for frontend ideas. The frontend is built as a single-page React application, while the backend relies on Supabase for data persistence and real-time capabilities.
 
 **Key implementation details:**
 
